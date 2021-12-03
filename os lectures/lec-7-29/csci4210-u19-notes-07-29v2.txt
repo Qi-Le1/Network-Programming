@@ -1,0 +1,185 @@
+[07/28/2019]
+
+-Exam 2 should be graded by the end of Thursday
+
+-Homework 4 has been posted, discussed today
+
+-Make sure to start playing with examples we've posted so you understand networking basics.
+
+=========================
+From last time:
+
+TCP server:
+
+socket()    create the server-side socket (endpoint)
+bind()      bind (associate) a specific port number
+            with the socket. This is the listener socket.
+listen()    identify the socket as a TCP listener, meaning
+            it will be ready to accept() incoming client connection
+            requests
+            
+
+while(1)
+{
+  accept()        accept an incoming client connection request (BLOCKING)
+
+  recv()/send()    read/write data across the established connection
+  read()/write()
+
+  close()          close the socket descriptor
+}
+
+
+TCP client:
+
+socket()    create the client-side socket (endpoint)
+connect()    attempt to establish a connection to the specified
+              server and port number via TCP (BLOCKING)
+
+recv()/send()    read/write data across the established connection
+read()/write()
+
+close()      close the socket descriptor
+
+
+  SERVER                        CLIENT
+  +----------------+            +----------------+
+  |              ===80 (HTTP)   |                |
+  |                |            |                |
+  |     fd 3     ===9889  41634===               |
+  |                |            |                |
+  |                |            |                |
+  |                |            |                |
+  |                |            |                |
+  |                |            |                |
+  |                |            |                |
+  +----------------+            +----------------+
+
+
+  SERVER                        CLIENT
+  +----------------+                +----------------+
+  |              ===80 (HTTP)       |                |
+  |                |                |                |
+  |     fd 3     ===9889<=====41634===connect()      |
+  |                |accept()        |                |
+  |                |                |                |
+  |                |                |                |
+  |                |                |                |
+  |                |                |                |
+  |                |                |                |
+  +----------------+                +----------------+
+
+  SERVER                        CLIENT
+  +----------------+                +----------------+
+  |              ===80 (HTTP)       |                |
+  |                |                |                |
+  |     fd 3     ===9889            |                |
+  |                |accept()        |                |
+  |                |                |                |
+  |   newsd4     ===9889======41634===read()         |
+  |     read()     |                | write()        |
+  |     write()    |                |                |
+  |                |                |                |
+  +----------------+                +----------------+
+
+uniquely identify the connection:
+  (TCP, SERVER, 9889, CLIENT, 41634)
+
+
+  SERVER                        CLIENT
+  +----------------+                +----------------+
+  |              ===80 (HTTP)       |                |
+  |                |                |                |
+  |     fd 3     ===9889            |                |
+  |                |accept()        |                |
+  |                |                |                |
+  |   newsd4     ===9889======41634===read()         |
+  |     read()     |                | write()        |
+  |     write()    |                |                |
+  |                |                |                |
+  |   newsd5     ===9889======54434===read()         |
+  |     read()     |                | write()        |
+  |     write()    |                |                |
+  |                |                |                |
+  +----------------+                +----------------+
+
+=========
+
+TCP server:
+
+socket()    create the server-side socket (endpoint)
+bind()      bind (associate) a specific port number
+            with the socket. This is the listener socket.
+listen()    identify the socket as a TCP listener, meaning
+            it will be ready to accept() incoming client connection
+            requests
+            
+
+while(1)
+{
+  accept()        accept an incoming client connection request (BLOCKING)
+
+	/* either call fork() or pthread_create() to hand off the new
+			established connection to a child process or child thread... */
+
+	CHILD:
+		recv()/send()    read/write data across the established connection
+		read()/write()
+		exit()/pthread_exit()
+
+	PARENT:
+	  close()          close the socket descriptor
+		cleanup zombies/non-detached threads?
+}
+
+
+TCP client:
+
+socket()    create the client-side socket (endpoint)
+connect()    attempt to establish a connection to the specified
+              server and port number via TCP (BLOCKING)
+
+recv()/send()    read/write data across the established connection
+read()/write()
+
+close()      close the socket descriptor
+
+SERVER TYPES:
+
+(0) Iterative server (typically UDP): accept incoming UDP datagrams on
+		a specific port number; or accept and handle TCP connections one
+		after the other (e.g. udp-server.c, tcp-server.c)
+
+		i.e., a single main thread to process client requests
+
+(1) fork()-based server (e.g. tcp-server-fork.c): a child process is
+			created for each received TCP client connection
+
+(2) fork()-based server with pre-forked processes: pre-fork() n processes,
+		then as incoming TCP client connection requests come in, assign them
+		to child processes (which require synchronization)
+
+(3) thread-based server: a child thread is created for each received 
+		TCP client connection
+
+(4) thread-based server with pre-created threads (i.e. thread pool): 
+		pre-create n threads, then as incoming TCP client connection requests 
+		come in, assign them to child threads (which require synchronization)
+
+(5) select()-based server: a single process (no multi-threading) that uses
+		select() system call, which enables the process to poll multiple descriptors
+		to check for activity on any of them
+
+		this approach eliminates the need (complexity/overhead) of multiple processes
+		or multiple threads...
+
+		...but this is still an iterative server
+
+
+ClientToC - shows Java client works with C server
+MultiThreadServer.java - shows Java example using thread-based server
+Student.java - small example class
+StudentServer.java/StudentClient.java - show in Java we can send an Object across a socket
+
+
+

@@ -1,0 +1,127 @@
+[07/18/2019]
+
+NETWORK PROGRAMMING
+
+Inter-process Communcation (IPC)
+-- sychronization
+-- protocol -- how is communication going to take place
+				(what should happen when errors occur?)
+				(how should messages be formatted?)
+
+Open Systems Interconnection (OSI) Reference Model
+
+-- the ISO proposal for the standardization of various protocols
+	in computer networks
+
+-- a seven-layer protocol stack
+
+	CLIENT															SERVER
+  -------------------------						---------------------
+	  Application (e.g. HTTP)  <======>     Application            Layer 7
+	  (Presentation)												(Presentation)
+		(Session)															(Session)
+		Transport (e.g. TCP, UDP) <=====>     Transport              Layer 4
+		Network (e.g. IP)					<=====>     Network                Layer 3
+		(Data Link)
+		Physical (e.g., Ethernet) <=====>     Physical               Layer 1
+
+
+	CLIENT															SERVER
+  -------------------------						---------------------
+	  Application (e.g. HTTP)  <======>     Application            Layer 7
+		Transport (e.g. TCP, UDP) <=====>     Transport              Layer 4
+		Network (e.g. IP)					<=====>     Network                Layer 3
+		Physical (e.g., Ethernet) <=====>     Physical               Layer 1
+
+
+	CLIENT															UNIT
+  -------------------------						----------------------------------------
+	  Application (e.g. HTTP)  <======>     Data, message, "application message"
+		Transport (e.g. TCP, UDP) <=====>     TCP segments, UDP datagrams
+		Network (e.g. IP)					<=====>     Packet, datagram
+		Physical (e.g., Ethernet) <=====>     Frame, bits, etc.
+
+
+-- As we move down layers, we add headers. This is called ENCAPSULATION.
+
+-- As we pass a packet up the layers, we remove headers. The application
+	never sees any of the headers.
+
+HTTP:
+	https://www.ietf.org/rfc/rfc2616.txt
+
+URI:
+	https://www.ietf.org/rfc/rfc2396.txt
+
+
+TCP vs. UDP
+
+Transmission Control Protocol (TCP)
+-- connection-oriented
+-- reliable protocol (re-send missing packets
+											sequencing [in order delivery]
+											error checking)
+-- overhead
+
+User Datagram Protocol (UDP)
+-- connectionless
+-- unreliable (no retransmission of missing packets,
+							may have out of order delivery
+							still has error checking!)
+-- not much overhead
+
+Socket-based Communication
+
+-- a SOCKET is an endpoint for communication
+
+-- socket-based communication can be connection-oriented OR connectionless
+
+-- a SERVER creates one (or more) sockets that it will then LISTEN on for
+		incoming CLIENT connection requests (TCP) or incoming datagrams (UDP)
+
+		-- the server listens on one (or more) specific PORT numbers 
+			(2-byte short, i.e. u16)
+
+		-- well-known port numbers (<1024) include:
+
+				21  FTP (file transfer)
+				22  SSH (remote terminal access)
+				23  TELNET (not used bc we should use 22 for SSH instead)
+				25  SMTP (sends email)
+				80  HTTP (web)
+			 443  HTTPS (secure web)
+
+UDP SERVER example (udp-server.c)
+
+-- socket()				create a socket (endpoint) for communication
+
+-- bind() 				bind to (assign) a specific port number
+									(or let the OS assign us a port number)
+									(also can specify if we want to only listen to some IPs)
+
+-- getsockname()	get socket "name" - IP address, port number, etc.
+
+-- sendto/recvfrom()
+
+
+Internet Protocol (IP)
+-- IP provides host-to-host delivery service of datagram
+-- IP is connectionless
+-- IP is unreliable
+
+IP addresses
+-- IP addresses are LOGICAL addresses at the network layer
+
+An IP address contains information about what network the destination host
+	is actually on, which enables ROUTING to occur at the intermediate "hops"
+	(routers) along the path from A to Z.
+
+	--this encoding is embedded within the address
+
+		128.113.0.2 (www.rpi.edu) =====> 10000000...
+		128.113.126.24 (www.cs.rpi.edu)
+
+
+
+
+

@@ -1,0 +1,103 @@
+[06/06/2019]
+
+Quiz 1 Graded -- see Submitty for your grades
+-- to request a regrade, please stop by during any office hours
+-- for regrade requests, please do these by Tues 6/11 !!!
+
+Homework 2 has been posted -- focus on fork(), pipe(), IPC
+
+Quiz 2 today -- yay!
+
+======================================================================
+
+requirements for IPC
+-- synchronization
+-- protocol
+
+types of IPC
+-- files (a process writes to a file; another process reads the file)
+-- shared memory segments
+-- message queues
+-- pipe (a unidirectional communication channel)
+-- socket-based communication (network programming)
+-- exit status (from a terminating child process to the parent process)
+
+   status & 0377  ==> 11111111  ==> 255
+                8             2        10
+
+======================================================================
+
+A process is a "running program" or "program in execution"
+
+Processes have a variety of states:
+
+
+   RUNNING           READY                 WAITING (on I/O)
+    STATE            STATE                  STATE
+
+   +-----+                               +-----------------------+
+   |     |     +--------------------+    |                 P2 P8 |
+   | CPU | <== | P3 | P6 | P5 | ... |    |  I/O Subsystem   P13  |
+   | P11 |     +--------------------+    |                       |
+   +-----+                               +-----------------------+
+
+ (a CPU burst is a set of assembly instructions that are executed by
+   the CPU for a given process)
+
+ (an I/O burst is one or more I/O operations for a given process)
+
+
+ RUNNING STATE: process is actually using the CPU
+                (i.e., executing its instructions)
+
+ READY STATE: process is ready to use the CPU (idle in the ready queue)
+
+ WAITING STATE: process is waiting for I/O operation(s) to complete
+
+
+CPU Scheduling (a.k.a. Short-Term Scheduling)
+
+-- The scheduling system enables one process to use the CPU
+    while other processes are waiting in the ready queue to use
+     the CPU (or waiting in the I/O subsystem)
+
+-- The goals of CPU scheduling are to make efficient use of the CPU
+    and to minimize the turnaround and wait times for each running process
+
+    -- We also want to achieve "fairness" among all processes
+
+
+
+-------------------------------------------------------------
+ PID 123   +----------+     +--------+
+ =========>| p=fork() |====>| p==126 |====> PARENT .........
+           +--\-------+     +--------+
+-------------+ \ --------------------------------------------
+             |  \+------+
+             |   | p==0 |======> CHILD PROCESS (PID 126) ...
+             |   +------+
+             +-----------------------------------------------
+
+
+What happens if the child process terminates before the
+ parent process terminates?
+
+  -- the child process returns an exit status and
+      becomes a "zombie" or defunct process until its
+       parent process acknowledges that the child process
+        has terminated
+
+  -- a SIGCHLD signal is also sent to the parent process,
+      but this signal is ignored by default (see "man 7 signal")
+
+
+What happens if the parent process terminates before the
+ child process terminates?
+
+  -- the child process is inherited by PID 1
+      (which "kills" the zombie process)
+
+
+
+     while ( 1 ) { fork(); }
+

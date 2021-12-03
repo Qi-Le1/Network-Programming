@@ -1,0 +1,6 @@
+1. Since No std input about hostname, how do we use it?
+2. in the process of building server, seems we do not need to use hostname.
+    only port is ok
+3. How to make server running in the background
+4. As a server, How can I know the port and ID of connected client
+5. how to get remote address from client

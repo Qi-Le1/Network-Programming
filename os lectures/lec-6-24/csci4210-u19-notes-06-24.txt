@@ -1,0 +1,548 @@
+[06/24/2019]
+
+Homework 2
+-- due 11:59PM tomorrow (Tues 6/25)
+-- Tues 6/25 and Wed 6/26 extra online "office hours" 9-11PM
+
+Exam 1 was Thursday 6/20
+-- exam is being graded -- we will review Thursday 6/27
+
+See revised schedule
+-- Final Exam is on Thursday 8/15, our last day of class
+
+Project specifications will be introduced in class today...
+
+======================================================================
+
+New jobs are admitted into the system
+-- long-term or high-level scheduling
+
+Once in the system, processes go through a number of state changes
+-- short-term or low-level or CPU scheduling
+
+A process is a "running program" or "program in execution"
+
+Processes have a variety of states:
+
+
+   RUNNING           READY                 WAITING (on I/O)
+    STATE            STATE                  STATE
+
+   +-----+                               +-----------------------+
+   |     |     +--------------------+    |                 P2 P8 |
+   | CPU | <== | P3 | P6 | P5 | ... |P8<==  I/O Subsystem   P13  |
+   | P11 |     +--------------------+    |                       |
+   +-----+                               +-----------------------+
+
+ (a CPU burst is a set of assembly instructions that are executed by
+   the CPU for a given process)
+
+ (an I/O burst is one or more I/O operations for a given process)
+
+
+ RUNNING STATE: process is actually using the CPU
+                (i.e., executing its instructions)
+
+ READY STATE: process is ready to use the CPU (idle in the ready queue)
+
+ WAITING STATE: process is waiting for I/O operation(s) to complete
+
+==> multiclass-system.png
+
+CPU Scheduling (a.k.a. Short-Term Scheduling)
+
+-- The scheduling system enables one process to use the CPU
+    while other processes are waiting in the ready queue to use
+     the CPU (or waiting in the I/O subsystem)
+
+-- The goals of CPU scheduling are to make efficient use of the CPU
+    and to minimize the turnaround and wait times for each running process
+
+    -- We also want to achieve "fairness" among all processes
+
+-- The task of the CPU scheduler is, when the CPU becomes free,
+    to select the next process from the ready queue
+     (more specifically, maintain the ready queue in a specific process order)
+
+-- CPU Scheduling Algorithms:
+
+   First Come First Served (FCFS)
+
+   Shortest Job First (SJF)
+
+   Shortest Remaining Time (SRT)
+
+   Priority Scheduling
+
+   Round Robin (RR)
+
+-- Preemption occurs when the currently running process is
+    preempted (i.e., "kicked out" or replaced) from using the CPU
+
+    -- might be because of a newly arriving (more important) process
+
+    -- might be because of a timeout (i.e., the RR algorithm)
+
+
+Processes in a multiprogramming system COMPETE for the CPU
+ (but they also often need to COOPERATE with one another via IPC)
+
+Whenever we switch a process out of the CPU and bring the next process
+ in to use the CPU, we have a CONTEXT SWITCH
+
+  -- the state of the currently running process is saved in
+      a process control block (PCB), which includes registers,
+       program counter, page table, memory maps, etc.
+
+  -- the state of the next (or replacement) process is loaded from its PCB
+
+                   OVERHEAD!!!!!!
+
+
+Other challenges of CPU scheduling include:
+-- Processes alternate bursts of CPU time and I/O time;
+    how do we best handle the process mix?
+
+   +---------+ blocked +--------------------------+  +--------------+
+P1 |CPU burst|---------|       CPU burst          |--|   CPU burst  |-->
+   +---------+ on I/O  +--------------------------+  +--------------+
+
+   +---+   blocked on I/O                        +-----+
+P2 |CPU|-----------------------------------------| CPU |--------------->
+   +---+                                         +-----+
+
+    P1 is a CPU-bound or compute-bound process;
+     P2 is an I/O-bound or interactive process
+
+    We can model this as follows:
+    -- Consider CPU usage from a probabilistic viewpoint
+    -- Suppose processes spend fraction p of their time
+        waiting for I/O to complete
+    -- Given n processes in memory (i.e., the degree of multiprogramming is n),
+        then the probability that all n processes are waiting for I/O is:
+
+                 n
+                p
+
+                                     n
+    -- CPU utilization is then: 1 - p
+
+
+-- Scheduling decisions:
+-- When does the OS make a scheduling decision?
+   -- fork() -- how do we schedule a new child process?
+   -- process termination
+   -- process blocks on I/O (or enters a waiting/suspended state)
+   -- I/O interrupt (the process re-enters the ready queue or maybe
+                      causes a preemption)
+-- Which process does the OS select next?
+
+-- The above depends on the types of processes
+
+   -- batch: no users are waiting  (lower priority --- non-preemptive)
+
+   -- interactive: users are waiting for a (quick) response; also
+       servers serving up file/webpages/etc.  (higher priority --- preemptive)
+
+   -- real-time: preemption not usually necessary because processes
+        already are designed to "know" that they need to run quickly
+
+
+All types of processes:
+-- fairness
+-- balance
+
+Batch systems:
+-- Throughput --- maximize the number of jobs completed per unit time
+-- Turnaround time --- minimize time between arrival and completion
+-- CPU utilization --- keep CPU as busy as possible
+
+Interactive systems:
+-- Response time -- respond to user requests quickly
+
+
+For each CPU burst per each process:
+
+WAIT TIME: How much time does a process spend in the ready queue
+            waiting for time with the CPU?
+
+TURNAROUND TIME: How much time is required for a process to complete
+                  its CPU burst, from the time it enters the ready queue
+                   through to when it completes its CPU burst
+
+
+TURNAROUND TIME  =  WAIT TIME  +  CPU BURST TIME
+
+TURNAROUND TIME  =  WAIT TIME  +  CPU BURST TIME  +  OVERHEAD
+                                                    (context switches)
+
+First Come First Served (FCFS)
+
+   pid   CPU burst times    (assume that all processes arrive at time 0)
+   P1      18 ms
+   P2       3 ms
+   P3       4 ms
+
+  ready queue is ordered: P1 P2 P3
+
+   context switch       context switches
+       v                    v   v    v
+       +--------------------+---+----+--------------->
+ FCFS: | P1                 |P2 | P3 | ...........
+       +--------------------+---+----+--------------->
+    t: 0                    18  21   25
+
+
+    P1 has 0 wait time          P1 has 18 ms turnaround time
+    P2 has 18 ms wait time      P2 has 21 ms turnaround time
+    P3 has 21 ms wait time      P3 has 25 ms turnaround time
+
+advantages: very simple; easy to implement; very low overhead
+
+disadvantages: processes with larger CPU burst times will likely cause
+                long delays for other (shorter) processes
+
+
+Shortest Job First (SJF)
+
+   pid   CPU burst times    (assume that all processes arrive at time 0)
+   P1      18 ms
+   P2       3 ms
+   P3       4 ms
+
+  ready queue is ordered: P2 P3 P1     (priority queue)
+
+     context switches            context switch
+       v   v    v                    v
+       +---+----+--------------------+--------------->
+  SJF: |P2 | P3 |  P1                | ........
+       +---+----+--------------------+--------------->
+    t: 0   3    7                    25
+
+    P1 has 7 ms wait time       P1 has 25 ms turnaround time
+    P2 has 0 wait time          P2 has 3 ms turnaround time
+    P3 has 3 ms wait time       P3 has 7 ms turnaround time
+
+advantages: lower average wait/turnaround times (versus FCFS)
+            good low turnaround times for interactive or I/O-bound processes
+
+disadvantages: processes with larger CPU burst times might end up
+                 facing INDEFINITE BLOCKING or STARVATION
+
+               higher overhead versus FCFS due to the priority queue
+
+               irl we have no way of knowing ahead of time exactly what
+                the CPU burst times will be for each process.....
+                  .......but we can predict the CPU burst times
+
+
+Both FCFS and SJF are non-preemptive algorithms
+-- once a process starts using the CPU for its CPU burst,
+    it will continue uninterrupted until the burst is complete
+
+-- what if we added preemption to SJF?
+   -- i.e., when new process B arrives, it can potentially preempt
+       (replace) the currently running process A if B's CPU burst time
+        is less than the remaining burst time for process A
+
+Shortest Remaining Time (SRT)
+-- SJF with preemption
+
+   pid   CPU burst times      arrival times
+   P1      18 ms                   0 ms
+   P2       3 ms                   2 ms
+   P3       4 ms                   3 ms
+   P4       3 ms                   5 ms
+
+  TO DO: draw the diagram for these processes and calculate
+          the turnaround/wait times for each
+
+  ready queue: P1
+
+    context switches
+      v  v   v   v    v                      v
+      +--+---+---+----+----------------------+------>
+ SRT: |P1pP2 |P4 | P3 |     P1               | ...
+      +--+---+---+----+----------------------+------>
+   t: 0  2   5   8    12                     28
+
+      P1 has wait time of 10 ms and turnaround time is 28 ms
+       (the wait time is the sum of all time spent in the ready queue
+         during the end-to-end turnaround time for each process)
+
+      to do: calculate the rest of the wait/turnaround times
+
+advantages: similar to SJF;
+            better at getting I/O-bound/interactive processes
+              through the CPU more quickly?
+
+disadvantages: processes with larger CPU burst times might end up
+                 facing INDEFINITE BLOCKING or STARVATION
+
+               higher overhead versus FCFS due to the priority queue;
+                 also more context switches are likely
+
+               irl we have no way of knowing ahead of time exactly what
+                the CPU burst times will be for each process.....
+                  .......but we can predict the CPU burst times
+
+
+Priority scheduling
+
+-- Each process is assigned a priority based on:
+   -- CPU burst times (e.g., SJF/SRT)   <===== estimated/predicted...
+   -- ratio of CPU to I/O activity (predicted/expected)
+   -- system resource usage
+   -- arbitrary or hard-coded
+
+-- The process with the highest priority gets scheduled with the CPU first
+
+-- When multiple processes have the same priority, we need a tie-breaker,
+    which is a secondary algorithm on that subset (e.g., just use FCFS)
+
+-- We decide (ahead of time) whether the algorithm is preemptive or not
+
+-- To help avoid starvation or indefinite blocking, we can use AGING:
+
+   -- If a given process is in the READY state (i.e., in the ready queue)
+       for some X amount of time, then we increase the priority of that
+        process by Y
+
+
+TODAY:
+-- CPU burst time prediction
+-- RR
+-- Project specifications
+
+
+A key problem with SJF/SRT is that we do not know the actual CPU burst
+ times ahead of time....
+
+-- We can predict the CPU burst times for each process based on
+    historical data, e.g., measures of previous actual CPU burst times
+
+-- We can use EXPONENTIAL AVERAGING (for EACH process):
+
+   tau     - estimated CPU burst time
+
+   t       - actual CPU burst time
+
+   alpha   - constant in the range [0.0,1.0), often 0.5 or higher
+
+
+
+   tau     =  alpha x t   +  (1-alpha) x tau
+      i+1              i                    i
+
+
+   e.g., with alpha set to 0.5
+
+   tau  = 10   <== initial guess -- could be random, could be hardcoded,
+      0                              could be a running average of N previous
+                                      actual CPU burst times across all
+                                       processes, etc.
+
+   t  = 6      <== actual (first) CPU burst time
+    0
+
+
+   tau  =  0.5 x t   +  0.5 x tau  =  0.5 x 6  +  0.5 x 10  =  8 (next guess)
+      1           0              0
+
+
+   t  = 4      <== actual (second) CPU burst time
+    1
+
+
+   tau  =  0.5 x t   +  0.5 x tau  =  0.5 x 4  +  0.5 x 8  =  6 (next guess)
+      2           1              1
+
+
+   TO DO: keep going with this example (match the diagram....)
+
+   TO DO: recalculate using alpha = 0.75, 0.9, 0.25, etc.
+
+
+To better address (reduce/remove) starvation,
+ we can turn to the Round Robin (RR) algorithm:
+
+-- Essentially FCFS with a fixed time limit on each CPU burst
+   -- i.e., a timeslice or a time quantum
+
+-- When a process starts using the CPU, a timer is set
+
+   -- The process either finishes its CPU burst before the timer expires
+       (btw in this case, the next process on the ready queue starts using
+        the CPU immediately....or at least after the context switch)
+
+   -- Or the process is PREEMPTED by the expiration of the timer,
+       in which case the process is added back to the end of the ready queue
+
+-- Selection of the timeslice is crucial
+
+   -- too large of a timeslice and we end up with FCFS
+
+   -- too small of a timeslice and we have too many context switches
+
+   -- try to minimize turnaround times if we can get "most" of the processes
+       finishing their respective CPU burst times within ONE timeslice
+
+   -- heuristic is 80% of CPU burst times should be less than the timeslice
+
+                                        1
+-- With N processes, each process gets ---th of CPU time  <=== FAIRNESS
+                                        N
+
+-- If a process arrives at some later time (i.e., not all starting at time 0),
+    we need to decide where the process should be placed in the ready queue
+
+   -- In general, we always place an arriving process at the end of
+       the ready queue  (....think FAIRNESS....)
+
+   -- Alternate approach: when a process arrives, add it to the front
+       of the queue (i.e., have it cut the line)
+
+       -- this "breaks" the FAIRNESS idea
+
+       -- the advantage here is that I/O-bound or interactive processes
+           get through their CPU bursts quickly and get back to more I/O
+
+       -- one other idea: maybe we only have certain processes that we've
+           identified as I/O-bound cutting the line
+
+-- e.g., apply the RR algorithm to the processes listed below
+          using a timeslice of 3ms
+
+   pid    CPU burst times      arrival times
+   P1       20 ms                  0
+   P2        5 ms                  0
+   P3        2 ms                  2 ms
+   P4       10 ms                  4 ms
+
+   Ready queue: 
+
+   RR (with a timeslice of 3ms)
+    |
+ P1 >XXXp    XXXp    XXXp  XXXp  XXXpXXXXX.  <== 5 preemptions
+ P2 >   XXXp       XX.                       <== 1 preemption
+ P3 | >    XX.                               <== 0 preemptions
+ P4 |   >       XXXp    XXXp  XXXp  X.       <== 3 preemptions
+    +-----------------------------------------------> time
+              111111111122222222223333333333
+    0123456789012345678901234567890123456789
+
+    P1 has 17ms of wait time;  P1 has 37ms turnaround time
+    P2 has 11ms of wait time;  P2 has 16ms turnaround time
+    P3 has 4ms of wait time;   P3 has 6ms turnaround time
+    P4 has 18ms of wait time;  P4 has 28ms turnaround time
+
+  TO DO: repeat the above analysis using different timeslices
+          (e.g., 2ms, 1ms, 6ms, 20ms, etc.)
+
+  TO DO: when processes P3 and P4 arrive, add them to the front of the queue
+
+============================================================================
+
+ALGORITHM   PREEMPTION?     ADVANTAGE(S)           DISADVANTAGE(S)
+
+ FCFS       non-preemptive  easy to implement      long wait times
+                            minimal overhead       long turnaround times
+                            no starvation
+
+ SJF        non-preemptive  optimal (fastest)      starvation
+                             (least average        requires us to predict
+                               wait time)            CPU burst times
+
+ SRT        preemptive                             starvation
+                                                   requires us to predict
+                                                     CPU burst times
+
+ Priority   non-preemptive  finer control over     starvation
+             or preemptive    process order        (also increased overhead)
+
+ Priority   non-preemptive  no starvation          but we still have
+  w Aging    or preemptive                          long wait times for
+   (PWA)                                             low-priority processes
+
+ Round      preemptive      no starvation          longer average wait times
+  Robin      based on       fairness               increased overhead
+   (RR)       timeslice                              (more context switches)
+               expiration                          strong dependency on
+                                                     timeslice selection
+
+
+============================================================================
+
+Mathematical models can be categorized as:
+
+-- Deterministic
+   -- the behavior is predictable with 100% certainty
+
+-- Stochastic
+   -- the behavior is uncertain, based on random events
+
+
+Stochastic processes
+-- branch of probability theory focusing on probabilistic systems
+    that evolve over time
+
+Probability theory
+-- dealing with uncertain (but known) outcomes
+
+Probability models
+-- first component is the sample space, i.e., the set of all possible outcomes
+-- second component is the event classes, i.e., subsets of the sample space
+-- third component is the probability of each event (>=0); all must sum to 1
+
+Probability distributions
+
+Queueing system is completely described by
+-- the input (how do "customers" or processes arrive and join the system?)
+-- the queue discipline (how is the queue ordered?  e.g., FCFS)
+-- the service mechanism (how many servers (e.g., # of CPUs)?)
+
+   arrival process
+   (M is memoryless, i.e., a Poisson arrival process with rate lambda)
+   (D is deterministic, i.e., interarrival interval is fixed and non-random)
+   (G is general)
+      |
+      v
+      M/M/1 queue
+        ^ ^
+        | |
+        | number of independent servers
+        |
+     service process
+
+-- M essentially means that each process arrival is independent
+    and the average interarrival time is fixed
+            ^^^^^^^
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

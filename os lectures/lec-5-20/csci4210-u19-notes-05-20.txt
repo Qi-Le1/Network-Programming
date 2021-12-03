@@ -1,0 +1,233 @@
+[05/20/2019]
+
+TO DO:
+(0) Read/review the syllabus and schedule
+
+(1) Make sure you are in the course on Submitty
+
+(2) Get Ubuntu up and running on your laptop and/or AWS cloud environment
+
+(3) Get the C code examples to compile/run in your environment
+    (make changes and see what happens...!)
+
+(4) In C, write some code to read in (from a file or user input via scanf)
+     a list of ten numbers (type double).  Store these values in an
+      array.  Sort this list of numbers using one or more functions.
+
+       (consider doing this in your favorite language first,
+         then aim to port it to C)
+
+    Rewrite your code and have it store a list of last names
+
+(5) Write a C program to simulate caching:
+
+    Interact with the user by repeatedly asking the user to input an
+     integer; for each integer N, use a function to calculate the sum 1..N
+
+    Pretend this is very expensive and you want to cache results
+
+    Using only one array in C, implement a cache of values; the cache
+     or array size must be 47 (though N will be much larger)
+
+======================================================================
+
+What is an operating system?  (one sentence only; don't use Google)
+
+-- a program that supports the computer's basic functions
+    (storing files, etc.)
+
+-- software that abstracts direct hardware usage
+
+-- a program that runs constantly that manages data and
+    runs other programs
+
+-- software that handles user input/output and processes accordingly
+
+-- a user interface that simplifies user interaction with hardware
+
+-- a software that manages the hardware efficiently and
+    helps users use the computer easily
+
+FROM THIS MORNING:
+-- interface with the hardware and process information
+    and create things
+
+-- layer of software that allows you to effectively use hardware
+
+-- program that runs all of your software and mediates interactions
+    with hardware
+
+-- software that manages and schedules the execution of other software
+
+-- responsible for enforcing permissions model for processes, users,
+    etc. and for allowing multi-user environment
+
+-- manages memory in the computer
+
+-- a program that allocates and manages resources for other programs
+
+-- managing filesystem, file hierarchy, devices, etc.
+
+-- a program that manages competing operations
+
+-- abstraction for programmers (i.e., system calls)
+
+-- a (very) large-scale software system
+
+
+What are the most important design goals or features of an OS?
+-- fairness
+-- efficiency
+-- reliability
+-- usability
+-- portability
+-- security
+-- maintainability
+-- extensibility
+-- flexibility
+
+FROM THIS MORNING:
+-- fairness
+-- reliability
+-- flexibility
+-- compatibility
+-- portability
+-- security
+-- efficiency
+-- scalability
+-- robust
+-- features!
+-- GUI/CLI
+-- usability
+-- extensibility
+-- predictability
+-- consistency
+-- interoperability
+
+
+Operating system services:
+
+-- Resource allocation
+   (memory management, process scheduling, disk access, I/O, etc.)
+
+-- Program execution
+   (load programs into memory, run/suspend/terminate programs,
+    handle/display errors)
+
+-- Filesystem manipulation
+   (read/write/traverse filesystem directories,
+    read/write/traverse files, enforce permissions/security)
+
+-- Interprocess Communication (IPC)
+   (processes exchange information via shared memory,
+    message passing, sockets, pipes, files, etc.)
+   (key challenges: synchronization)
+
+-- Error detection and recovery
+   (Detect errors in CPU, memory, I/O, processes, etc.)
+   (Recover from errors gracefully)
+
+-- Account and resource protection/security
+   (Users, groups, account verification, memory protection, etc.)
+
+-- Usage monitoring
+   (processes, users, networks, log files, etc.)
+
+
+Multiprogramming
+-- In multiprogramming, several processes reside in memory
+    at the same time
+-- CPU is shared and managed by the OS
+-- Addresses the problem of the CPU being underutilized
+-- This introduces a new problem.....
+   ...need to perform a "context switch" to switch the CPU's context
+       from one process to another
+
+Timesharing
+-- Given a multiprogramming environment...
+-- To ensure fairness, use timesharing in which the CPU
+    cycles through all ready processes
+-- Each process is given a fixed and finite amount of CPU time
+    in which the process executes its instructions (CPU burst)
+-- Switching from one running process to another is called
+    a "context switch"
+
+
+Program Execution
+-----------------
+       |
+       |
+       v
+   CPU burst
+       |
+       |
+       v
+   I/O burst
+       |
+       |
+       v
+   CPU burst
+       |
+       |
+       v
+   I/O burst
+       |
+       |
+       v
+   CPU burst
+       |
+       |
+       v
+   I/O burst
+       |
+       |
+       v
+   CPU burst
+       |
+       |
+       v
+   I/O burst
+       |
+       |
+       v
+   CPU burst
+       |
+       |
+       v
+   I/O burst
+       |
+       |
+       v
+   CPU burst
+       |
+       |
+       v
+Program termination
+
+
+
+  PROCESS
+
+ +------------------------+
+ | runtime heap           | <== dynamically allocated memory
+ |      | path    path2   |     -- the "new" keyword in C++/Java
+ |      |                 |     -- in C, malloc(), calloc(), realloc()
+ |      |                 |     -- don't forget to use free()...
+ |      |                 |        ...otherwise, memory leak   :-(
+ |      v                 |
+ |                        |
+ |                        |
+ |                        |
+ |                        |
+ |      ^                 |
+ |      |                 |
+ |      | open()          |
+ |      | xyz()           |
+ |      | main() int x    |
+ | runtime stack          | <== statically allocated memory
+ |------------------------|     (e.g., int x, int * y, etc.)
+ | code/data/etc.         |
+ +------------------------+
+   ^^^
+  this is read-only memory (bc it is built at compile time)
+

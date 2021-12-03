@@ -1,0 +1,473 @@
+Announcements:
+-Final Exam is on Thursday. You can attend either section. 
+-Homework 4 extension
+-Office hours will still be held this week!
+-Course Evaluation rate at midnight was 58.37%
+
+===================================
+
+Review:
+
+First, let's think of topics we've covered:
+1. fork()
+2. File descriptors, fd table
+3. read/write
+4. Pipes
+5. CPU scheduling
+6. Concurrency concepts (mutexes, dining philosophers, etc.)
+7. Threading / pthreads
+8. Network programming
+9. Filesystems
+10. Memory Management / Virtual Memory
+11. Others?
+	-permissions	
+	-signal handling
+	-output buffering
+	-Basic C stuff (annoying C-style string representation, arrays, etc.)
+	-Shared memory (shmget()/shmat() etc.)
+
+atoi()...
+	atoi("5") = 5
+	atoi("five") = 0
+	atoi("5five") = 5
+	atoi("5five5") = 5
+
+Megabyte?
+10^6 bytes or 2^20 bytes?
+In OS, it's always powers of 2!
+
+Disk manufactures sometimes use MB vs MiB to try and sell something 
+that's 10^6 but have us think it's 2^20.
+
+F < 3MB
+U < 4MB
+N < 6MB
+
+First-Fit: Start from the beginning of memory, look for the _first_
+contiguous free space that can fit the process
+
+AAAAAAAAA......R (each character here represents 1MB)
+RRRRRR.....CCCCC
+CCCC...HHHHHHHHH
+HHHH.........XXX
+
+AAAAAAAAAFFF...R
+RRRRRR.....CCCCC
+CCCC...HHHHHHHHH
+HHHH.........XXX
+
+AAAAAAAAAFFF...R
+RRRRRRUUUU.CCCCC
+CCCC...HHHHHHHHH
+HHHH.........XXX
+
+AAAAAAAAAFFF...R
+RRRRRRUUUU.CCCCC
+CCCC...HHHHHHHHH
+HHHHNNNNNN...XXX
+
+Best-Fit: Look at all possible placements for the process and use the smallest
+that can still fit.
+
+AAAARRRRRRRRRRRR
+RRRRRRRR....CCCC
+CCCCC...HHHHHHHH
+HHHHHH.......XXX
+
+AAAARRRRRRRRRRRR
+RRRRRRRR....CCCC
+CCCCCFFFHHHHHHHH
+HHHHHH.......XXX
+
+AAAARRRRRRRRRRRR
+RRRRRRRRUUUUCCCC
+CCCCCFFFHHHHHHHH
+HHHHHH.......XXX
+
+AAAARRRRRRRRRRRR
+RRRRRRRRUUUUCCCC
+CCCCCFFFHHHHHHHH
+HHHHHHNNNNNN.XXX
+
+
+Next-Fit: Start from where the previous process was placed, look 
+for the _first_ contiguous free space that can fit the process
+
+AAAAAAAAAA.....R
+RRRRRRRR.....CCC
+CCCCCC...HHHHHHH
+HHHH........XXXX
+
+AAAAAAAAAA.....R
+RRRRRRRR.....CCC
+CCCCCC...HHHHHHH
+HHHHFFF.....XXXX
+
+AAAAAAAAAA.....R
+RRRRRRRR.....CCC
+CCCCCC...HHHHHHH
+HHHHFFFUUUU.XXXX
+
+AAAAAAAAAA.....R
+RRRRRRRR.....CCC
+CCCCCC...HHHHHHH
+HHHHFFFUUUU.XXXX
+
+*Can't place N (not a big enough contiguous free space)
+
+First fit, after allocations:
+AAAAAAAAAFFF...R
+RRRRRRUUUU.CCCCC
+CCCC...HHHHHHHHH
+HHHHNNNNNN...XXX
+
+10 MB of free space. Right?
+Need to remember there may be internal fragmentation.
+Unused memory = 10 MB + (3MB - 2,987,642B)
+							        + (4MB - 4,002,016B)
+						          + (6MB - 6,202,454B)
+
+First fit after defragmentation (aka memory compaction):
+AAAAAAAAAFFFRRRR
+RRRUUUUCCCCCCCCC
+HHHHHHHHHHHHHNNN
+NNNXXX..........
+
+Don't do the following on an exam, but a REAL defragmentation system might do
+something like...
+
+AAAAAAAAAFFFXXXR <---Moved X to fill a hole that was the right size
+RRRRRRUUUU.CCCCC
+CCCC...HHHHHHHHH
+HHHHNNNNNN......
+
+
+#19
+32-bit addresses
+12 highest bits are page number
+(32-12 = 20) bits are the page offset
+
+What is the total logical memory space (i.e., how many bytes are addressed)?
+2^32 addresses total = 4GB
+
+How many pages are there?
+2^12 pages
+
+What is the page size?
+2^20 bytes = 1MB
+
+What is the frame size?
+frame size == page size
+2^20 bytes
+
+How does logical memory address 23,942,519 (binary 1011011010101010101110111) map
+to physical memory (i.e., what is the logical page number and page offset)?
+
+1011011010101010101110111
+logical address = page number | page offset
+
+page number is highest 12 bits
+page number = 1011 0110 1010.... right?
+
+actually, start with the page offset
+page offset = 1101 0101 0101 0111 0111
+
+32-bit address
+0000 0001 0110 1101 0101 0101 0111 0111
+page number: 0000 0001 0110
+it's okay to just write: 10110
+
+If a process requires 78,901,234 bytes of memory, how many pages will it require?
+answer = 78,901,234 bytes / (2^20 bytes / page) ... right?
+
+Because internal fragmentation can happen, need ceil()
+answer = ceil(78,901,234 / 2^20) 
+"answer" is a number of pages allocated to this process
+
+How many bytes are unused due to fragmentation?
+"answer" is in pages
+answer * 2^20 bytes / page ---> is in bytes
+
+(answer * 2^20) - 78,901,234 bytes unused due to fragmentation
+
+Given that the page table is stored entirely in memory and a memory reference takes
+100 nanoseconds, how long does a paged memory reference take?
+(1) Look up in the page table (i.e. memory reference)
+(2) Do requested memory access
+
+100ns + 100ns = 200ns
+
+Adding a translation look-aside buffer (TLB) with a TLB access time of 15 nanoseconds,
+how long does a paged memory reference take if a TLB hit occurs?
+
+TLB hit time:
+(1) Access the TLB
+(2) Do requested memory access
+= 15ns + 100ns = 115ns
+
+Given a TLB hit ratio of 94%, what is the effective memory access time (EMAT)?
+
+EMAT = (hit_rate * hit_time) + (miss_rate * miss_time)
+EMAT = (hit_rate * hit_time) + ((1.0 - hit_rate) * miss_time)
+
+miss_time:
+(1) Access the TLB
+(2) Look up in the page table (i.e. memory reference)
+(3) Do requested memory access
+= 15ns + 100ns + 100ns = 215ns
+
+EMAT = (.94 * 115ns) + (.06 * 215ns)
+     = 108.1ns + 12.9ns = 121 ns
+
+#20
+
+Page reference stream:
+1 8 4 8 4 3 8 3 4 7 1 7 2 3 2 4 2 7 8
+
+
+FIFO: The page that was placed into memory earliest
+(longest ago) gets evicted (removed)
+
+FIFO 1 8 4 8 4 3 8 3 4 7 1 7 2 3 2 4 2 7 8
+------------------------------------------
+   . 1 1 1
+   . . 8 8
+   . . . 4
+------------------------------------------
+     p p p
+
+
+
+FIFO 1 8 4 8 4 3 8 3 4 7 1 7 2 3 2 4 2 7 8
+------------------------------------------
+   . 1 1 1 1 1-3
+   . . 8 8 8 8 8
+   . . . 4 4 4 4
+------------------------------------------
+     p p p     p
+
+
+
+FIFO 1 8 4 8 4 3 8 3 4 7 1 7 2 3 2 4 2 7 8
+------------------------------------------
+   . 1 1 1 1 1-3 3 3 3 3
+   . . 8 8 8 8 8 8 8 8-7
+   . . . 4 4 4 4 4 4 4 4
+------------------------------------------
+     p p p     p       p
+
+
+
+FIFO 1 8 4 8 4 3 8 3 4 7 1 7 2 3 2 4 2 7 8
+------------------------------------------
+   . 1 1 1 1 1-3 3 3 3 3 3
+   . . 8 8 8 8 8 8 8 8-7 7
+   . . . 4 4 4 4 4 4 4 4-1
+------------------------------------------
+     p p p     p       p p
+
+
+
+FIFO 1 8 4 8 4 3 8 3 4 7 1 7 2 3 2 4 2 7 8
+------------------------------------------
+   . 1 1 1 1 1-3 3 3 3 3 3 3-2
+   . . 8 8 8 8 8 8 8 8-7 7 7 7
+   . . . 4 4 4 4 4 4 4 4-1 1 1
+------------------------------------------
+     p p p     p       p p   p
+
+
+FIFO 1 8 4 8 4 3 8 3 4 7 1 7 2 3 2 4 2 7 8
+------------------------------------------
+   . 1 1 1 1 1-3 3 3 3 3 3 3-2 2
+   . . 8 8 8 8 8 8 8 8-7 7 7 7-3
+   . . . 4 4 4 4 4 4 4 4-1 1 1 1
+------------------------------------------
+     p p p     p       p p   p p
+
+
+FIFO 1 8 4 8 4 3 8 3 4 7 1 7 2 3 2 4 2 7 8
+------------------------------------------
+   . 1 1 1 1 1-3 3 3 3 3 3 3-2 2 2 2
+   . . 8 8 8 8 8 8 8 8-7 7 7 7-3 3 3
+   . . . 4 4 4 4 4 4 4 4-1 1 1 1 1-4
+------------------------------------------
+     p p p     p       p p   p p   p
+
+
+
+FIFO 1 8 4 8 4 3 8 3 4 7 1 7 2 3 2 4 2 7 8
+------------------------------------------
+   . 1 1 1 1 1-3 3 3 3 3 3 3-2 2 2 2 2-7
+   . . 8 8 8 8 8 8 8 8-7 7 7 7-3 3 3 3 3
+   . . . 4 4 4 4 4 4 4 4-1 1 1 1 1-4 4 4
+------------------------------------------
+     p p p     p       p p   p p   p   p
+
+
+
+FIFO 1 8 4 8 4 3 8 3 4 7 1 7 2 3 2 4 2 7 8
+------------------------------------------
+   . 1 1 1 1 1-3 3 3 3 3 3 3-2 2 2 2 2-7 7
+   . . 8 8 8 8 8 8 8 8-7 7 7 7-3 3 3 3 3-8
+   . . . 4 4 4 4 4 4 4 4-1 1 1 1 1-4 4 4 4
+------------------------------------------
+     p p p     p       p p   p p   p   p p  <==== 11 page faults
+
+
+What if we had 4 frame static allocation per process?
+
+
+FIFO 1 8 4 8 4 3 8 3 4 7 1 7 2 3 2 4 2 7 8
+------------------------------------------
+   . 1 1 1
+   . . 8 8
+   . . . 4
+   . . . .
+------------------------------------------
+     p p p
+
+
+FIFO 1 8 4 8 4 3 8 3 4 7 1 7 2 3 2 4 2 7 8
+------------------------------------------
+   . 1 1 1 1 1 1
+   . . 8 8 8 8 8
+   . . . 4 4 4 4
+   . . . . . . 3
+------------------------------------------
+     p p p     p
+
+
+
+FIFO 1 8 4 8 4 3 8 3 4 7 1 7 2 3 2 4 2 7 8
+------------------------------------------
+   . 1 1 1 1 1 1 1 1 1-7
+   . . 8 8 8 8 8 8 8 8 8
+   . . . 4 4 4 4 4 4 4 4
+   . . . . . . 3 3 3 3 3
+------------------------------------------
+     p p p     p       p
+
+
+
+FIFO 1 8 4 8 4 3 8 3 4 7 1 7 2 3 2 4 2 7 8
+------------------------------------------
+   . 1 1 1 1 1 1 1 1 1-7 7
+   . . 8 8 8 8 8 8 8 8 8-1
+   . . . 4 4 4 4 4 4 4 4 4
+   . . . . . . 3 3 3 3 3 3
+------------------------------------------
+     p p p     p       p p
+
+
+FIFO 1 8 4 8 4 3 8 3 4 7 1 7 2 3 2 4 2 7 8
+------------------------------------------
+   . 1 1 1 1 1 1 1 1 1-7 7 7 7
+   . . 8 8 8 8 8 8 8 8 8-1 1 1
+   . . . 4 4 4 4 4 4 4 4 4 4-2
+   . . . . . . 3 3 3 3 3 3 3 3
+------------------------------------------
+     p p p     p       p p   p
+
+
+FIFO 1 8 4 8 4 3 8 3 4 7 1 7 2 3 2 4 2 7 8
+------------------------------------------
+   . 1 1 1 1 1 1 1 1 1-7 7 7 7 7 7 7
+   . . 8 8 8 8 8 8 8 8 8-1 1 1 1 1 1
+   . . . 4 4 4 4 4 4 4 4 4 4-2 2 2 2
+   . . . . . . 3 3 3 3 3 3 3 3 3 3-4
+------------------------------------------
+     p p p     p       p p   p     p
+
+
+FIFO 1 8 4 8 4 3 8 3 4 7 1 7 2 3 2 4 2 7 8
+------------------------------------------
+   . 1 1 1 1 1 1 1 1 1-7 7 7 7 7 7 7 7 7-8
+   . . 8 8 8 8 8 8 8 8 8-1 1 1 1 1 1 1 1 1
+   . . . 4 4 4 4 4 4 4 4 4 4-2 2 2 2 2 2 2 
+   . . . . . . 3 3 3 3 3 3 3 3 3 3-4 4 4 4
+------------------------------------------
+     p p p     p       p p   p     p     p  <=== 9 page faults
+
+LRU (Least Recently Used): Look backwards to see the most recent time each page in
+memory was used. Whichever process has the oldest "recently used" time, gets evicted
+
+LFU (Least Frequently Used): Keep a count of how many times each page currently in memory
+has been accessed. Evict the page with the lowest count. Remember that a page's use count
+gets reset to 0 when loaded back into memory.
+
+OPT (Optimal): Can see in to the future. For each page currently in memory, find the next
+usage time (looking forward). Whichever page won't be used longest (next usage time is
+furthest in the future) gets evicted.
+
+#21
+
+Δ = 3, 5, 8, 10
+
+Δ = 3
+1 9 4 8 4 3 8 3 4 7 1 7 2 3 2 4 2 7 8
+              ^     ^
+              |<--->| Δ=3, working set = {1, 3, 4, 7}
+
+Δ = 5
+1 9 4 8 4 3 8 3 4 7 1 7 2 3 2 4 2 7 8
+          ^         ^
+          |<------->| Δ=5, working set = {1, 3, 4, 7, 8}
+
+Δ = 8
+1 9 4 8 4 3 8 3 4 7 1 7 2 3 2 4 2 7 8
+    ^               ^
+    |<------------->| Δ=8, working set = {1, 3, 4, 7, 8}
+
+
+Δ = 10
+1 9 4 8 4 3 8 3 4 7 1 7 2 3 2 4 2 7 8
+^                   ^
+|<----------------->| Δ=3, working set = {1, 3, 4, 7, 8, 9}
+
+Δ = 3
+1 9 4 8 4 3 8 3 4 7 1 7 2 3 2 4 2 7 8
+              ^     ^
+              |<--->| Δ=3, working set = {1, 3, 4, 7}
+
+
+1 9 4 8 4 3 8 3 4 7 1 7 2 3 2 4 2 7 8
+                ^     ^
+                |<--->| Δ=3, working set = {1, 4, 7}
+
+
+1 9 4 8 4 3 8 3 4 7 1 7 2 3 2 4 2 7 8
+                  ^     ^
+                  |<--->| Δ=3, working set = {1, 2, 7}
+
+
+1 9 4 8 4 3 8 3 4 7 1 7 2 3 2 4 2 7 8
+                    ^     ^
+                    |<--->| Δ=3, working set = {1, 2, 3, 7}
+
+
+1 9 4 8 4 3 8 3 4 7 1 7 2 3 2 4 2 7 8
+                      ^     ^
+                      |<--->| Δ=3, working set = {2, 3, 7}
+
+
+1 9 4 8 4 3 8 3 4 7 1 7 2 3 2 4 2 7 8
+                        ^     ^
+                        |<--->| Δ=3, working set = {2, 3, 4}
+
+
+1 9 4 8 4 3 8 3 4 7 1 7 2 3 2 4 2 7 8
+                          ^     ^
+                          |<--->| Δ=3, working set = {2, 3, 4}
+
+
+1 9 4 8 4 3 8 3 4 7 1 7 2 3 2 4 2 7 8
+                            ^     ^
+                            |<--->| Δ=3, working set = {2, 4, 7}
+
+
+1 9 4 8 4 3 8 3 4 7 1 7 2 3 2 4 2 7 8
+                              ^     ^
+                              |<--->| Δ=3, working set = {2, 4, 7, 8}
+
+

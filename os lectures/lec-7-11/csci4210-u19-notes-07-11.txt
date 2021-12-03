@@ -1,0 +1,128 @@
+[07/08/2019]
+
+Rainbow grades
+-- will be set up in late July
+-- please see your individual grades on Submitty
+-- use the syllabus to work out how you are doing in the course
+
+Project
+-- use the Discussion Forum and the Project gradeable to find/create/join teams
+-- do NOT submit any code yet -- or you'll waste one of your submissions! 
+	(Will check when submission is ok)
+-- Project extension to 7/16, keep in mind HW3 will not move
+-- sample output is available on Submitty (see tests.sh for non-hidden test cases)
+-- if you use a late day on the project, each team member will need to use a late day
+
+Exam 1 -- average 73/100
+-- please email Prof. Goldschmidt directly with Exam 1 grading questions/grievances by 
+	Friday 7/12
+-- for those of you who participated in the 15-minute pre-class research study
+    earlier this semester, you should see 2 additional extra points on Exam 1
+     (if not, just email Prof. G. ...)
+
+Homework 3
+-- assigned today
+-- it will overlap with the Project 1 extension, unavoidable with tight summer schedule
+
+Office hours
+-- for Prof. Goldschmidt's office hours, please check my website
+-- Professor Holzbauer will begin his Tuesday morning office hours
+
+https://webforms.rpi.edu/student-invitation-community-faculty-student-luncheons
+
+======================================================================
+
+SYNCHRONIZATION
+
+-- synchronization problems are inherent to parallel programming
+    in which we have multiple processes via fork() using shared memory
+     or other shared resources; also multiple threads
+
+
+                  SHARED MEMORY
+                 +-------------+
+                 | shared x    |  <== initially x = 5
+                 +-------------+
+
+  Process P1                      Process P2
++--------------+                +--------------+
+| attach to x  |                | attach to x  |
+|              |                |              |
+| local y      |                |              |
+|              |                | local z      |
+|              |                |              |
+|              |                |              |  At <point A> and <point B>,
+|--------------|                |--------------|   what is x?  What is the output
+> x += 4       < CRITICAL       > x++          <    of each process?
+> y = x        <       SECTIONS > z = x        <
+|--------------|                |--------------|  What is x?  10 or 9 or 6
+|              |                |              |
+| print x      |                | print x      |  What is y in P1?  9 or 10
+| print y      |                | print z      |
+|              |                |              |  What is z in P2?  6 or 10
+|              |                |              |
+|  <point A>   |                |  <point B>   |
++--------------+                +--------------+
+
+The highlighted CRITICAL SECTIONS shown above are used to synchronize
+ these two processes such that only one (and no more than one) process
+  can be in its critical section at any given time
+
+A critical section guarantees MUTUAL EXCLUSION among multiple processes
+ (or threads) for access to one or more shared resources (e.g., variable x)
+
+If we did synchronize the above diagram, then x would be guaranteed to be 10
+ after both <point A> and <point B> are reached
+
+Synchronization:
+(1) data synchronization (e.g., reservation system)
+(2) process (or thread) synchronization -- sequence of events
+
+
+P1:
+    x += 4  ========> x = x + 4
+
+                      LOAD x         ; load the value of x into a register (5)
+                      ADD #4         ; add 4 to that register (9)
+               <<<------context-switch---------------->>>
+                      STORE x        ; store the new value (9) back in shared memory x
+
+P2:
+    x++  ===========> x = x + 1
+
+                      LOAD x         ; load the value of x into a register (5)
+                      INCR           ; add 1 to that register (6)
+                      STORE x        ; store the new value (6) back in shared memory x
+
+Multiple threads
+-- in ONE process, we can have multiple threads of execution
+
+
+             ONE PROCESS
+  +---------------------------------+
+  |           main()                |
+  |             |                   |
+  |             | int x = 5;        |
+  |             v                   |
+  |      create a few threads...    |
+  |                                 |
+  |                                 |
+  | thread1   thread2     thread3   |
+  |   |          |           |      |
+  |   |         /            |      |
+  |   |        |              \     |
+  |  /          \              \    |
+  | |            \              |   |
+  | |             v             v   |
+  | v                               |
+  |                                 |
+  | these threads join() back in    |
+  |  to the parent thread           |
+  |                                 |
+  +---------------------------------+
+
+The purpose behind joining threads back in to the parent thread:
+-- we might want to return one or more values back from the child
+    to the parent
+-- we might want to ensure a specific sequence of events
+

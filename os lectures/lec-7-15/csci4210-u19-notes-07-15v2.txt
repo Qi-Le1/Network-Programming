@@ -1,0 +1,410 @@
+[07/15/2019]
+
+Project
+-- Project extension to 7/16, keep in mind HW3 will not move
+-- if you use a late day on the project, each team member will need to use a late day
+
+Office hours
+-- for Prof. Goldschmidt's office hours, please check my website
+-- Professor Holzbauer will begin his Tuesday morning office hours
+
+https://webforms.rpi.edu/student-invitation-community-faculty-student-luncheons
+
+======================================================================
+
+Synchronization and Mutual Exclusion
+
+	/* Process P1, or Thread T1 */
+	while(1){
+		execNonCriticalSections();
+		execCriticalSection();
+	}
+
+	/* Process P2, or Thread T2 */
+	while(1){
+		execNonCriticalSections();
+		execCriticalSection();
+	}
+
+	/* Process P3, or Thread T3 */
+	while(1){
+		execNonCriticalSections();
+		execCriticalSection();
+	}
+
+
+					/* global or shared memory */
+					int x = 5;
+					int lock = 0; /* 0 == lock available, 1==lock in use */
+
+	/* Thread T1 */						/* Thread T2 */
+	while( 1 )							while ( 1 )
+	{									{
+		execNonCriticalSection();			execNonCriticalSection();
+		while ( lock == 1 ){				while ( lock == 1 ){
+			/* busy wait */						/* busy wait */
+		}									}
+        <-----context switch----->			<-----context switch----->
+		lock = 1;							lock = 1;
+		execCriticalSection();				execCriticalSection();
+		lock = 0;							lock = 0;
+	}									}
+
+	In the above solution, if a context switch occurs where shown,
+	then both T1 and T2 can be in their critical sections at
+	the same time (which is bad)
+
+
+Below is a two-thread (or two-process) solution (Dekker's algorithm):
+
+					/* global or shared memory */
+					int x = 5;
+					int needLockT1 = 0; /* 0 or 1 */
+					int needLockT2 = 0; /* 0 or 1 */
+					int turn = T1; 		/* T1 or T2 */
+
+	/* Thread T1 */						/* Thread T2 */
+	while( 1 )							while ( 1 )
+	{									{
+		execNonCriticalSection();			execNonCriticalSection();
+		needLockT1 = 1;						needLockT2 = 1;
+		turn = T2;							turn = T1;
+		while ( turn == T2 &&				while ( turn == T1 &&
+				needLockT2 == 1 ){					needLockT1 == 1){
+			/* busy wait */						/* busy wait */
+		}									}
+
+		execCriticalSection();				execCriticalSection();
+		needLockT1 = 0;						needLockT2 = 0;
+	}									}
+
+T1: needLockT1 = 1
+T1: turn = T2
+T2: needLockT2 = 1
+T2: turn = T1
+T1: execCriticalSection();
+T1: needLockT1 = 0;
+T2: execCriticalSection();
+T2: needLockT2 = 0;
+
+TO DO: verify (convince yourself) that the above pseudocode will
+		guarantee that at most one thread is in its critical section
+		at any given time
+
+TO DO: Extend this to an n-thread solution
+
+
+SEMAPHORE:
+
+-- an OS construct that enables us to have synchronized access
+	to one or more shared resources
+
+-- special non-negative integer value
+
+-- two operations:
+
+	(1) attempt to get access ("acquire")
+		P()			proberen (to try)
+		wait()
+		down()
+
+
+	(2) release a held resource
+		V()			vrijgeven (to release)
+		signal()
+		up()
+
+	semaphore S is non-negative int value
+
+	P( semaphore S){
+		while(S == 0){
+			/* busy wait */
+		}
+		// We CANNOT have a context switch between
+		// end of while loop and S--;
+		S--;
+	}
+
+	V( semaphore S){
+		S++;
+	}
+
+-- example of a BINARY SEMAPHORE, which guarantees mutual exclusion
+
+		/* initialize the sempahore to 1 since there will be exactly
+			1 resource (or holder of the resource) at a time */
+			semaphore mutex = 1;
+
+		/* each thread executes the following code */
+		...
+		P(mutex);
+			execCriticalSection();
+		V(mutex);
+		...
+
+-- a COUNTING ( or GENERAL) SEMAPHORE controls access to a finite number
+		of resources
+
+		--initialize the semaphore to n, where n is the number of
+			resources to be shared/synchronized
+
+			semaphore S = 20;
+
+		-- again we'll use the P() and V() notation
+
+		-- possible values of S? S = 0, 1, ..., n
+
+==========
+
+PRODUCER/CONSUMER PROBLEM ( a.k.a SHARED BUFFER PROBLEM)
+	--Given a shared buffer (e.g. array) of fixed size n
+	--One or more producer threads (add things to the buffer)
+	--One or more consumer threads (remove things from the buffer)
+
+
+
+						/* shared or global memory */
+							int n = 20;
+							char buffer[n];
+
+
+	/* producer */						/* consumer */
+	while ( 1 )							while ( 1 )
+	{									{
+		item = produce_next_item();			item = remove_from_buffer();
+		add_to_buffer (item);				consume(item);
+	}									}
+
+
+						/* shared or global memory */
+							int n = 20;
+							char buffer[n];
+							semaphore empty_slots = n;
+							semaphore used_slots = 0;
+
+
+	/* producer */						/* consumer */
+	while ( 1 )							while ( 1 )
+	{									{
+		item = produce_next_item();			P(used_slots);
+		P(empty_slots);						item = remove_from_buffer();
+		add_to_buffer (item);				V(empty_slots);
+		V( used_slots);						consume(item);
+	}									}
+
+	The above solution uses to counting semaphores to ensure:
+	(1) no buffer overflow happens due to a producer writing
+	(2) that no consumer reads from an empty buffer
+
+
+Let's suppose producer adds two items to the buffer: ['A', 'B']
+Let's say we have two consumers, TC1 and TC2, and both run P(used_slots)
+and then context switch.
+Let's assume that TC1 was run before TC2
+	Does TC1 and/or TC2 read from an empty buffer in this situation? No.
+	Will TC1 get the item 'A', and TC2 get the item 'B'?
+
+
+
+						/* shared or global memory */
+							int n = 20;
+							char buffer[n];
+							semaphore empty_slots = n;
+							semaphore used_slots = 0;
+							semaphore mutex = 1;
+
+
+	/* producer */						/* consumer */
+	while ( 1 )							while ( 1 )
+	{									{
+		item = produce_next_item();			P(used_slots);
+		P(empty_slots);							P(mutex);
+			P(mutex);								item = remove_from_buffer();
+				add_to_buffer (item);			V(mutex);
+			V(mutex);						V(empty_slots);
+		V( used_slots);						consume(item);
+	}									}
+
+TO DO: parallelize the above solution further such that reads/writes
+		can occur simultaneously in different slots of the buffer
+
+		P() is blocking operation
+
+==========================
+
+The READERS/WRITERS PROBLEM:
+
+-- Shared resource is an array, might be a seating chart (concert, flights, exam)
+
+-- One or more readers that can be reading simultaneously
+
+-- One or more writers that actually change the array (e.g. reserve a seat)
+	-- When a writer wants to write, no other writers can be writing
+	-- When a writer wants to write, no readers can be reading
+
+=========================
+
+DINING PHILOSOPHER'S PROBLEM
+Given: five philosophers that engage in only two kinds of activities
+	(1) Thinking (i.e. independent computation)
+	(2) Eating (i.e. sharing a resource; therefore, requires synchronization
+
+	philosopher(i)	/* i in 0...4 */
+	{
+		while(1){
+			think()
+			eat()
+		}
+	}
+
+Given: shared table with five bowls and five (single) chopsticks,
+		and a bowl of food in the middle of the table
+		(which is endlessly replenished)
+
+Key constraint: to eat(), a philosopher must obtain two chopsticks,
+				the one to their left, and the one to their right
+
+Goal: Design a solution by which you can guarantee that each
+		philosopher eats (i.e. fairness and no starvation)
+
+		No two philosophers can hold the same chopsticks simultaneously
+
+		Avoid deadlock
+
+		No individual starvation
+
+		Fairness, efficiency, etc.
+
+Deadlock: We have deadlock when no process/thread can make any
+		further progress (i.e. all are blocked on P() and the
+		resource in question will never become free).
+
+First attempt:
+
+	chopsticks is an array of 5 semaphores
+
+	philosopher(i){ 		/* i in 0...4 */
+		while(1){
+			think()
+			P(chopstick[i])
+				<---context switch---->
+				P(chopstick[(i+1)%5])
+					eat();
+				V(chopstick[(i+1)%5])
+			V(chopstick[i])
+		}
+	}
+
+Deadlock can occur if the first P() operation is successfully
+executed by each philosopher, followed immediately by a context switch
+	-- no philosopher gets to their second P() operation
+	--	therefore no one gets to their V() operation
+
+A solution to this problem:
+	-- we could simply use a top-level mutex to avoid deadlock
+		("Only one person can sit at the table at a time")
+	-- too inefficient
+
+
+Second attempt:
+
+	chopsticks is an array of 5 semaphores
+
+	philosopher(i){ 		/* i in 0...4 */
+		while(1){
+			think()
+			P(mutex)
+				P(chopstick[i])
+				P(chopstick[(i+1)%5])
+			V(mutex)
+			eat();
+			V(chopstick[(i+1)%5])
+			V(chopstick[i])
+		}
+	}
+
+	TODO: Convince yourself that the above solution "works" meaning
+		that it avoids deadlock and is "fair" (or... doesn't work?)
+
+Third attempt:
+	-- use an asymmetric solution
+
+
+	philosopher(i){ 		/* i in 0...3 */
+		while(1){
+			think()
+			P(chopstick[i])
+				P(chopstick[(i+1)%5])
+					eat();
+				V(chopstick[(i+1)%5])
+			V(chopstick[i])
+		}
+	}
+
+	philosopher(i){ 		/* i in 4 */
+		while(1){
+			think()
+			P(chopstick[(i+1)%5])
+				P(chopstick[i])
+					eat();
+				V(chopstick[i])
+			V(chopstick[(i+1)%5])
+		}
+	}
+
+	TODO: Convince yourself that the above solution "works" meaning
+		that it avoids deadlock and is "fair" (or... doesn't work?)
+
+======================
+
+DEADLOCK
+
+
+Deadlock: We have deadlock when no process/thread can make any
+		further progress (i.e. all are blocked on P() and the
+		resource in question will never become free).
+
+A system enters deadlock state when multiple processes/threads
+are unable to obtain a lock on all necessary resources
+
+	...and therefore are unable to make progress in their execution.
+
+After acquiring a resource, a process/thread holds onto that resource
+	indefinitely (i.e. "hold and wait")
+
+
+					semaphore S, Q /* initialize to 1 */
+
+	//process 1						//process 2
+	...								...
+	P( S )	[succeeds]				P( Q )  [succeeds]
+	<----context switch--->			<----context switch--->
+	P( Q )	[blocked forever]		P( S )  [blocked forever]
+	...								...
+	V( Q )							V( S )
+	V( S )							V( Q )
+	...								...
+
+Deadlock requires four conditions:
+	--mutual exclusion
+	--hold and wait
+	--no preemption (of resources)
+	--circular wait  -- i.e. cycle in resource allocation graph
+
+TODO: does deadlock2.png portray a system that is deadlocked?
+
+Handling deadlocks:
+	--Allow the system to enter deadlock, then recover:
+		-- terminating one or more of the processes/threads
+			(i.e. removing vertices from the allocation graph)
+		-- rolling back one or more of the deadlocked processes/threads
+			to a safe checkpointed state (i.e., remove an edge from the graph)
+
+	--Another option is to guarantee that the system will never enter
+		a deadlocked state
+		-- preventing deadlock ensures that at least one of the four conditions
+			is not met
+		-- deadlock avoidance allows a system to change state by
+			allocating resources only when it is certain that
+			doing so would not cause deadlock
+

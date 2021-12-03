@@ -1,0 +1,353 @@
+[08/01/2019]
+
+For HW4 we are not doing any file transfer 
+(very early version may have a line about it). 
+
+For Exam 2, solutions are now posted. Grades are now posted. 
+Exam grade inquiries can be sent to my email ( holzbh2@rpi.edu ).
+Subject must contain "Exam 2 Grade Inquiry"
+
+After some consideration the question about shmat() will give credit for either
+"attaches to the shared memory ID" or "none of the above".
+
+Rainbow Grades has been posted
+
+====================
+
+Filesystems and I/O
+
+-- GOAL: data should be organized and available in a convenient
+         and efficient manner.
+
+-- the FILE is basic building block
+
+-- A file is an abstraction that can represent user data, OS data,
+    an executable, source code, a device, a directory, etc.
+
+-- A file is simply a sequence or stream of bytes.
+
+-- File attributes (man lstat)
+  -- Human-readable name
+  -- Type (e.g. regular file, directory, symlink, hard link, etc.)
+  -- Number of hard links
+  -- Logical location(s) (i.e., within the filesystem hierarchy)
+      /cs/holzbh/public.html/CCN19/index.php
+      /etc/abc.conf
+      /tmp/aoirghaoij.txt
+  -- Physical location(s) (e.g. on disk, on network)
+  -- Size (in bytes)
+  -- Protection/mode (e.g., rwx, 0664 ==> -rw-rw-r--)
+  -- Timestamps
+
+  -- MS-DOS: attrib, dir
+  -- UNIX: "ls -l"
+
+More on naming:
+  Case-sensitivity? Consider "LETTERS.txt", "letters.txt", "LeTtErS.tXt".
+  Are they the same file?
+  MS-DOS: YES! (not case sensitive)
+  UNIX: No! (case sensitive)
+
+  Length: Could use a fixed width scheme, i.e.
+          MS-DOS 8 bytes + "." + optional 3 byte extension
+          Program.EXE
+          What about... "Program Files"?
+          Truncate to fit ===> "Progra~1"
+          What about... "LongCat10", "LongCat20", "LongCat22"?
+          Truncate to fit ===> "LongCa~1", "LongCa~2", "LongCa~3" ...
+
+          Couldn't handle Unicode, only basic ASCII...  
+
+  Common file name length limit is 255 bytes. How do we do this?
+  We could reserve a fixed 255 byte field for each file... but wasteful.
+
+What's a directory?
+  A FILE (or structured block). SImplest approach is filename, attributes, disk pointer.
+
+  /exampledir/
+  +-----------------------+
+  |project.pdf|0660|<addr>|
+  -------------------------
+  |README.txt |0777|<addr>|
+  -------------------------
+  |a.bc       |0777|<addr>|
+  -------------------------
+  |          ...          |
+  -------------------------
+  |solutions  |0777|<addr>| <---- directory
+  +-----------------------+
+
+  Above figure uses fixed width per row.
+
+  Another idea: variable length records
+
+  /exampledir/
+  +------------------------+
+  |   File 1 entry length  |
+  --------------------------
+  |   File 1 attributes    |
+  --------------------------
+  |   p r o  j             | <==== usually some "word alignment"
+  |   e c t  .             |       maybe 4-bytes (32-bits)
+  |   p d f \0             |
+  --------------------------
+  |   File 2 entry length  |
+  --------------------------
+  |   File 2 attributes    |
+  --------------------------
+  |   R E  A  D            | <==== usually some "word alignment"
+  |   M E  .  t            |       maybe 4-bytes (32-bits)
+  |   x t \0 []            |       [] shows an empty space
+  --------------------------
+  |   File 3 entry length  |
+  --------------------------
+  |   File 3 attributes    |
+  --------------------------
+  |    a .  b  c           | <==== usually some "word alignment"
+  |   \0 [] [] []          |       maybe 4-bytes (32-bits)
+  +------------------------+
+
+  Problem: What happens when we remove a file entry? Variable-sized hole is left
+  behind. If we add another directory entry, will it fit?
+
+  Yet another idea - keep a "hea" at the end for all names, less waste.
+  Also now we have afixed directory entry size! But heap management for the name heap.
+
+  /exampledir/
+  +------------------------+
+  |   File 1 name pointer  |
+  --------------------------
+  |   File 1 attributes    |
+  --------------------------
+  |   File 2 name pointer  |
+  --------------------------
+  |   File 2 attributes    |
+  --------------------------
+  |   File 3 name pointer  |
+  --------------------------
+  |   File 3 attributes    |
+  --------------------------
+  |   p r o  j             | 
+  |   e c t  .             | 
+  |   p d f \0             |
+  |   R E  A  D            |
+  |   M E  .  t            |
+  |   x t \0  a            |
+  |   . b  c  \0           |
+  +------------------------+
+
+Possible filesystem layout:
+  Sections MAY be preallocated, fixed size or not. Depends on file system
+
+  +---------------------------------------------------------------------------+
+  |MBR ||| Superblock | Free space management | Inodes | Root dir | Files/Dirs|
+  +---------------------------------------------------------------------------+
+
+    MBR - "Master Boot Record", "sector 0". Used for booting the computer, has
+    "partition table"
+
+    Superblock - Filesystem information such as block size/number of blocks,
+    filesystem type, etc.
+
+    Partitions - A logical segment of a disk (might be entire disk) containing
+    everything to the right of |||
+
+    Block - a fixed size of data out on disk, e.g. 8192 bytes
+
+  -- an ACCESS METHOD describes the mechanism by which a process
+     accesses data within a file
+      -- sequential access (open, read, write, close)
+      -- random-access (open, read, write, close, fseek/lseek)
+
+  -- Storage scheme -- how do we store files on disk?
+      -- storage schemes are transparent to users
+      -- traditionally involved cylinder, tracks, sectors, bytes
+
+Contiguous (no gaps) Disk Space Allocation Scheme
+-- files are allocated to contiguous blocks of disk space
+
+  e.g., four files on disk
+  . to show unused block
+
+  AAAABB.CCCCDD............................
+
+  file B grows, and outgrows its space (it doubles in size)
+  it must be reallocated and moved elsewhere:
+
+  AAAA...CCCCDDBBBB.........................
+
+  file D grows, and outgrows its space (it doubles in size)
+  it must be reallocated and moved elsewhere:
+
+  AAAA...CCCC..BBBBDDDD.....................
+
+  Eventually:
+
+  AAAA...CCCC..BBBBDDDD..EE..F..GGGGGGGGGG..
+
+  Want to add 4 block file, H. Can't do it even though we have empty blocks.
+
+  When system is idle we can "consolidate free space":
+
+  AAAACCCCBBBBDDDDEEFGGGGGGGGGG.............
+  <<<<<<<<<<<<<<<<<<<<<
+
+  AAAACCCCBBBBDDDDEEFGGGGGGGGGGHHHH.........
+
+  This still get used in CD-ROM (ISO 9660 / Rock Ridge/ Joliet)
+  Let's ignore CD-R/RW, "finalizing", etc. in interest of time.
+
+Clustered Disk Space Allocation Scheme (non-contiguous)
+-- files are allocated to one or more clusters (runs) of contiguous blocks
+   of disk space
+
+  e.g., four files on disk
+  . to show unused block
+
+  AAAABB.CCCCDD............................
+
+  file B grows, and outgrows its space (it doubles in size):
+
+  AAAABBBCCCCDDB...........................
+
+  file D grows, and outgrows its space (it doubles in size):
+
+  AAAABBBCCCCDDBDD.........................
+
+  B and D are fragmented (more than one cluster)
+
+  key advantage is that we do not require defragmentation of files or
+  consolidation of free space (we might still do this when we can)
+
+  disadvantages:
+  -- more bookkeeping required
+  -- file access may cross cluster boundaries
+
+  How might we do this in practice? Simplest method is linked lists!
+  Use the first word of each block to point to the next block for this file
+  (or say "end of list").
+
+  Can't do any physical scheduling (of the hardware) because we don't know
+  where the next-next block is until we read the next block.
+
+  Another option: linked list in table in memory - store the entire
+  "file allocation table" (FAT)
+
+    File E (4 blocks): blocks 3, 6, 7, 8
+    File F (2 blocks): blocks 2, 0
+
+    +-----------------+
+ 00 |        -1       |
+    |-----------------|
+ 01 |        3        |   <---File E points here
+    |-----------------|
+ 02 |        0        |   <---File F points here
+    |-----------------|
+ 03 |        6        |
+    |-----------------|
+ 04 |                 |
+    |-----------------|
+ 05 |                 |
+    |-----------------|
+ 06 |        7        |
+    |-----------------|
+ 07 |        -1       |
+    |-----------------|
+ 08 |                 |
+    +-----------------+
+
+  Problem: This doesn't scale. If a partition has b blocks
+  entrysize = ceil(log_2(b)/8) bytes, 
+    might round to nearest multiple of 4 bytes for "word alignment"
+
+  128 MB disk with 1KB blocks: 2^27 / 2^10 = 2^17 blocks. 3*2^17 = 384KB for table
+  1 TB disk with 1KB blocks: 2^40 / 2^10 = 2^30 blocks. 4*2^30 bytes = 4 GB for table
+  1 TB disk with 512KB blocks: 2^40 / 2^19 = 2^21 blocks. 3*2^21 bytes = 6 MB for table
+
+  Is 512KB a reasonable block size? Not really, if we have a lot of files...
+
+In Linux, file information is stored in an inode ("index node"?),
+which contains various file attributes (see above), as well as:
+  -- number of blocks (clusters) allocated to a file
+    (where a block is a fixed size of data out of disk, e.g. 8192 bytes)
+  -- pointers to the first 12-15 (typically 15) direct blocks
+    (where each of these direct blocks contains actual file content)
+  -- pointers to three additional blocks, which contain pointers to blocks, etc.
+    (single/double/triple indirect blocks)
+
+https://www.linuxtoday.com/blog/what-is-an-inode.html
+
+On a UNIX system can use "ls -li" to see inode numbers (work on WSL too)
+On a UNIX system can use "df -i" to see inode usage (doesn't work on WSL)
+
+Let's do some storage capability questions.
+
+e.g. given a block size of Q, what is the maximum file size?
+
+  Q = 8192 bytes
+  An indirect block can hold up to 1024 pointers
+  Assume inodes hold up to 15 direct pointers
+
+   Example inode structure:
+  +-----------------+
+  | direct ptr 1    |
+  -------------------
+  | direct ptr 2    |
+  -------------------
+  | direct ptr 3    |
+  -------------------
+  | direct ptr 4    |
+  -------------------
+  | direct ptr 5    |
+  -------------------
+  | direct ptr 6    |
+  -------------------
+  | direct ptr 7    |
+  -------------------
+  | direct ptr 8    |
+  -------------------
+  | direct ptr 9    |
+  -------------------
+  | direct ptr 10   |
+  -------------------
+  | direct ptr 11   |
+  -------------------
+  | direct ptr 12   |
+  -------------------
+  | direct ptr 13   |
+  -------------------
+  | direct ptr 14   |
+  -------------------
+  | direct ptr 15   |
+  -------------------
+  |single indir. ptr|
+  -------------------
+  |double indir. ptr|
+  -------------------
+  |triple indir. ptr|
+  +-----------------+
+
+	TODO: Fill in the "?? inodes". Convince yourself that this scales better than the FAT
+	approach. Keep in mind we only need the inodes that are for the file(s) we're
+  interested in to be in memory. And we only need them in memory when a process that is
+	interested in a file is active.
+
+	We may say "indirect inode" interchangably with "indirect block", because we are
+	lazy CS professors. "indirect inode" is not a real term... probably.
+
+	We are also going to count indirect blocks/indirect inodes as well as real inodes
+	in the following calculations?
+
+	direct blocks: 15 * Q = 15 * 8192 = 122,880 bytes
+	(1 inode)
+
+	single-indirect:  122,880 + (1024 * 8192) = 8,511,488 bytes
+  (2 inodes)
+
+                                           2
+	double-indirect: 8,511,488 bytes + (1024^  * 8192) = 8,598,446,080 bytes
+  (?? inodes)
+
+                                         3
+	triple-indirect: 8,598,446,080 + (1024^  * 8192) = 8,804,691,468,288 bytes.
+  (?? inodes)

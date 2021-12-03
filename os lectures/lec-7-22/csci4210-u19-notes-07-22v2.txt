@@ -1,0 +1,324 @@
+[07/22/2019]
+
+-Quiz 3 and 4 blanks have been posted under Course Materials
+
+-Quiz 3 and 4 solutions have been added to the quiz-solns.txt in Course Materials
+
+-Exam 2 practice questions have been added to the Course Materials
+ Sadly we don't have time to go through them as a class with the Summer schedule
+ For the code based problems, you can try copying the code and adding sleep()
+   statements, see what happens when you effectively force context switches in
+   different places!
+ Man pages are your friend as well! If you don't remember how a function works,
+ look at examples, look at the man pages too, try writing a small program that uses
+ the function and play around with it.
+
+-If you have accomodations, please e-mail me by the end of today!
+
+-Exam 2 on Thursday 07/25.
+
+Berry Zhu (mentor) is still watching the forums more actively Tu/W 9-11PM and F 10-11 PM
+From July 30th to August 10th he will be switching to 9-11AM instead of PM. 
+
+-Ice cream flyer
+
+-HW3 extension until Friday due to popular demand
+ Keep in mind this means "non-stop OS" since regardless,
+ HW4 will be released and discussed on Monday
+ HW4 deadline cannot move due to grading constraints, and is due the week of the final.
+ Plan accordingly, summer schedule means less flex room :(
+
+[today's lecture notes continue after the [07/18/2019] notes]
+
+=========================
+
+[07/18/2019]
+
+NETWORK PROGRAMMING
+
+Inter-process Communcation (IPC)
+-- sychronization
+-- protocol -- how is communication going to take place
+        (what should happen when errors occur?)
+        (how should messages be formatted?)
+
+Open Systems Interconnection (OSI) Reference Model
+
+-- the ISO proposal for the standardization of various protocols
+  in computer networks
+
+-- a seven-layer protocol stack
+
+  CLIENT                              SERVER
+  -------------------------            ---------------------
+    Application (e.g. HTTP)  <======>     Application            Layer 7
+    (Presentation)                        (Presentation)
+    (Session)                              (Session)
+    Transport (e.g. TCP, UDP) <=====>     Transport              Layer 4
+    Network (e.g. IP)          <=====>     Network                Layer 3
+    (Data Link)
+    Physical (e.g., Ethernet) <=====>     Physical               Layer 1
+
+
+  CLIENT                              SERVER
+  -------------------------            ---------------------
+    Application (e.g. HTTP)  <======>     Application            Layer 7
+    Transport (e.g. TCP, UDP) <=====>     Transport              Layer 4
+    Network (e.g. IP)          <=====>     Network                Layer 3
+    Physical (e.g., Ethernet) <=====>     Physical               Layer 1
+
+
+  CLIENT                              UNIT
+  -------------------------            ----------------------------------------
+    Application (e.g. HTTP)  <======>     Data, message, "application message"
+    Transport (e.g. TCP, UDP) <=====>     TCP segments, UDP datagrams
+    Network (e.g. IP)          <=====>     Packet, datagram
+    Physical (e.g., Ethernet) <=====>     Frame, bits, etc.
+
+
+-- As we move down layers, we add headers. This is called ENCAPSULATION.
+
+-- As we pass a packet up the layers, we remove headers. The application
+  never sees any of the headers.
+
+HTTP:
+  https://www.ietf.org/rfc/rfc2616.txt
+
+URI:
+  https://www.ietf.org/rfc/rfc2396.txt
+
+
+TCP vs. UDP
+
+Transmission Control Protocol (TCP)
+-- connection-oriented
+-- reliable protocol (re-send missing packets
+                      sequencing [in order delivery]
+                      error checking)
+-- overhead
+
+User Datagram Protocol (UDP)
+-- connectionless
+-- unreliable (no retransmission of missing packets,
+              may have out of order delivery
+              still has error checking!)
+-- not much overhead
+
+Socket-based Communication
+
+-- a SOCKET is an endpoint for communication
+
+-- socket-based communication can be connection-oriented OR connectionless
+
+-- a SERVER creates one (or more) sockets that it will then LISTEN on for
+    incoming CLIENT connection requests (TCP) or incoming datagrams (UDP)
+
+    -- the server listens on one (or more) specific PORT numbers 
+      (2-byte short, i.e. u16)
+
+    -- well-known port numbers (<1024) include:
+
+        21  FTP (file transfer)
+        22  SSH (remote terminal access)
+        23  TELNET (not used bc we should use 22 for SSH instead)
+        25  SMTP (sends email)
+        80  HTTP (web)
+       443  HTTPS (secure web)
+
+UDP SERVER example (udp-server.c)
+
+-- socket()        create a socket (endpoint) for communication
+
+-- bind()         bind to (assign) a specific port number
+                  (or let the OS assign us a port number)
+                  (also can specify if we want to only listen to some IPs)
+
+-- getsockname()  get socket "name" - IP address, port number, etc.
+
+-- sendto/recvfrom()
+
+
+Internet Protocol (IP)
+-- IP provides host-to-host delivery service of datagram
+-- IP is connectionless
+-- IP is unreliable
+
+IP addresses
+-- IP addresses are LOGICAL addresses at the network layer
+
+An IP address contains information about what network the destination host
+  is actually on, which enables ROUTING to occur at the intermediate "hops"
+  (routers) along the path from A to Z.
+
+  --this encoding is embedded within the address
+
+    128.113.0.2 (www.rpi.edu) =====> 10000000...
+    128.113.126.24 (www.cs.rpi.edu)
+
+
+[07/22/2019]
+
+IP addresses give us structure, some number of the highest order (left)
+bits are the "network address" - all hosts (machines) on the network share
+these common bits.
+
+The remaining lower (rightmost) bits are the "host address" - unique to each
+host.
+
+32-bits to work with in IPv4.
+
+We can break a network into smaller "subnets" by using the highest bits of the
+HOST address space and making them the same for everyone on the subnet.
+
+This example is just made up numbers but:
+  128.113.xxx.xxx = RPI's addresss space (network address)
+  128.113.107.xxx = Chemistry department's subnet (network address?)
+  128.113.107.2, 128.113.107.199 = examples of hosts on the Chem subnet.
+  128.113.64.xxx = CompSci department's subnet (network address?)
+  128.113.64.18, 128.113.64.199 = examples of hosts on the CS subnet.
+  All four complete IP addresses are on RPI's network.
+  Packet from the outside gets to RPI, then finds the right subnet, then the
+    right host.
+  IP addresses are "hierarchical", just like US Postal Mailing addresses.
+
+What does the follow mean?
+  (Data Marshalling)
+
+  04/01/2010  ==>  April 1st, 2010
+              ==> January 4th, 2010
+
+  04.01.2010?
+
+  int is 4 bytes -- big endian vs little endian
+
+htons() -- host-to-network short (16 bits)
+htonl() -- (32 bit)
+ntohs() -- network-to-host short (16 bits)
+ntohl() -- (32 bit)
+
+Inter-process Communcation (IPC)
+-- sychronization
+-- protocol -- how is communication going to take place
+        (what should happen when errors occur?)
+        (how should messages be formatted?)
+-- data marshalling
+
+TCP server:
+
+socket()              create the server-side socket (endpoint)
+bind()                bind (associate) a specific port number with the socket,
+                        which will be the LISTENER port
+listen()              identify the socket as a TCP listener, meaning it will be
+                        ready to accept incoming client TCP connections.
+
+while(1){
+  accept()            accepts an incoming client connection request (BLOCKING)
+                      and makes a new socket descriptor
+
+  recv()/send()        read/write data across the established connection
+  read()/write()
+
+
+  close()              close the socket descriptor
+}
+
+TCP client:
+
+socket()              create a client-side socket (endpoint)
+connect()              attempt to establish a connection to the specified server
+                      and port
+
+recv()/send()          read/write data across the established connection
+read()/write()
+
+close()                close the socket descriptor
+
+
+  SERVER                        CLIENT
+  +----------------+            +----------------+
+  |              ===80 (HTTP)   |                |
+  |                |            |                |
+  |     fd 3     ===9889  41634===               |
+  |                |            |                |
+  |                |            |                |
+  |                |            |                |
+  |                |            |                |
+  |                |            |                |
+  |                |            |                |
+  +----------------+            +----------------+
+
+  SERVER                     				   CLIENT
+  +----------------+                  +----------------+
+  |              ===80 (HTTP)         |                |
+  |                |                  |                |
+  |     fd 3     ===9889<=========41634===  connect()  |
+  |                | accept()         |                |
+  |                |                  |                |
+  |                |                  |                |
+  |                |                  |                |
+  |                |                  |                |
+  |                |                  |                |
+  +----------------+                  +----------------+
+
+
+  SERVER                     				   CLIENT
+  +----------------+                  +----------------+
+  |              ===80 (HTTP)         |                |
+  |                |                  |                |
+  |     fd 3     ===9889              |                |
+  |                | accept()         |                |
+  |                |                  |                |
+  |                |                  |                |
+  |                |                  |                |
+  |    newsd 4   ===9889===========41634==read()       |
+  |    read()      |                  |   write()      |
+  |    write()     |                  |                |
+  |                |                  |                |
+  |                |                  |                |
+  |                |                  |                |
+  |                |                  |                |
+  |                |                  |                |
+  |                |                  |                |
+  |                |                  |                |
+  +----------------+                  +----------------+
+
+TCP uniquely identifies each connection based on:
+  (SERVER, 9889, CLIENT, 41634)
+
+
+  SERVER                     				   CLIENT
+  +----------------+                  +----------------+
+  |              ===80 (HTTP)         |                |
+  |                |                  |                |
+  |     fd 3     ===9889              |                |
+  |                | accept()         |                |
+  |                |                  |                |
+  |                |                  |                |
+  |                |                  |                |
+  |    newsd 4   ===9889===========41634==read()       |
+  |    read()      |                  |   write()      |
+  |    write()     |                  |                |
+  |                |                  |                |
+  |                |                  |                |
+  |    newsd 5   ===9889===========55434==read()       |
+  |    read()      |                  |   write()      |
+  |    write()     |                  |                |
+  |                |                  |                |
+  |                |                  |                |
+  +----------------+                  +----------------+
+
+uniquely identify the connection:
+	fd 4: (TCP, SERVER, 9889, CLIENT, 41634)
+	fd 5: (TCP, SERVER, 9889, CLIENT, 55434)
+
+===================
+
+
+
+
+
+
+
+
+
+
